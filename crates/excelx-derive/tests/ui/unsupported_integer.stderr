@@ -1,0 +1,5 @@
+error: unsupported ExcelRow field type
+ --> tests/ui/unsupported_integer.rs:6:9
+  |
+6 |     id: u64,
+  |         ^^^

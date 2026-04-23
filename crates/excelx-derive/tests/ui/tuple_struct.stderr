@@ -1,0 +1,5 @@
+error: ExcelRow can only be derived for structs with named fields
+ --> tests/ui/tuple_struct.rs:4:1
+  |
+4 | struct TupleStruct(#[excel(header = "ID", order = 1)] i64);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

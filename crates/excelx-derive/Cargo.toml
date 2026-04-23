@@ -2,9 +2,11 @@
 name = "excelx-derive"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description = "Derive macro for the excelx ExcelRow trait."
 documentation = "https://docs.rs/excelx-derive"
+readme = "README.md"
 
 [lib]
 proc-macro = true

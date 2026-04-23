@@ -154,6 +154,13 @@ enum FieldConversion<'a> {
 impl<'a> FieldConversion<'a> {
     fn for_type(ty: &'a Type) -> syn::Result<Self> {
         if let Some(inner) = option_inner_type(ty) {
+            if option_inner_type(inner).is_some() {
+                return Err(syn::Error::new_spanned(
+                    ty,
+                    "nested Option fields are not supported",
+                ));
+            }
+
             return Ok(Self::Option(Box::new(Self::for_type(inner)?)));
         }
 

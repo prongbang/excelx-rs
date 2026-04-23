@@ -8,6 +8,10 @@ The crate supports manual `ExcelRow` implementations, default values during
 parse, homogeneous multi-sheet workbook generation, and a derive macro in the
 separate `excelx-derive` crate.
 
+## MSRV
+
+The minimum supported Rust version is `1.85.0`.
+
 ## Example
 
 ```rust
@@ -102,3 +106,40 @@ struct Person {
 The initial macro release supports named structs with `String`,
 `Option<String>`, supported integer types, `f32`/`f64`, `bool`, and optional
 scalar fields.
+
+## Limitations
+
+`excelx` is intentionally small. Current limitations:
+
+* Reading uses the first worksheet only.
+* Multi-sheet support is write-only and homogeneous via `SheetData<T>`.
+* Integer writes go through XLSX numeric cells, which are stored as floating
+  point values by Excel. Very large integers can lose precision.
+* Defaults apply during parse when a required header exists and the cell is
+  empty. Defaults are not applied when a header is missing.
+* Date/time cells, formulas, styles, streaming large files, and custom number
+  formats are out of scope for this release.
+* The derive crate supports named structs only.
+
+## Compatibility Fixtures
+
+The CI workflow includes a LibreOffice compatibility job that creates an `.xlsx`
+file with `libreoffice --headless --convert-to xlsx` and parses it through the
+public API.
+
+The compatibility test can also read external `.xlsx` fixtures from
+`EXCELX_COMPAT_FIXTURE_DIR`. Use this for files saved by Microsoft Excel or
+other spreadsheet tools:
+
+```sh
+EXCELX_COMPAT_FIXTURE_DIR=crates/excelx/tests/fixtures/compat \
+  cargo test -p excelx --test compatibility_workbooks
+```
+
+Expected fixture shape:
+
+```text
+ID,Name,Active,Score
+1,Ada,true,98.5
+2,Grace,false,88
+```

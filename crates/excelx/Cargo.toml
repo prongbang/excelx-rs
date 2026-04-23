@@ -2,9 +2,11 @@
 name = "excelx"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description = "Type-safe XLSX read/write helpers for Rust structs."
 documentation = "https://docs.rs/excelx"
+readme = "README.md"
 
 [dependencies]
 calamine = "0.34"

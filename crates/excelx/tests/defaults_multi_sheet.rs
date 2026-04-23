@@ -152,3 +152,18 @@ fn rejects_duplicate_sheet_names() {
         matches!(error, ExcelError::Schema(message) if message.contains("duplicate sheet name"))
     );
 }
+
+#[test]
+fn rejects_empty_sheet_collection() {
+    let error = to_xlsx_multi::<Account>(&[]).expect_err("empty sheet collection");
+
+    assert!(matches!(error, ExcelError::Schema(message) if message.contains("at least one sheet")));
+}
+
+#[test]
+fn rejects_invalid_sheet_name() {
+    let sheets = vec![SheetData::new("Invalid/Name", Vec::<Account>::new())];
+    let error = to_xlsx_multi(&sheets).expect_err("invalid sheet name");
+
+    assert!(matches!(error, ExcelError::Write(_)));
+}

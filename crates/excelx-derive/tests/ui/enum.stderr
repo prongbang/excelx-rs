@@ -1,0 +1,7 @@
+error: ExcelRow can only be derived for structs
+ --> tests/ui/enum.rs:4:1
+  |
+4 | / enum RowKind {
+5 | |     One,
+6 | | }
+  | |_^

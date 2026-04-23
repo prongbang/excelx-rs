@@ -294,3 +294,17 @@ fn validates_duplicate_order_and_headers() {
         Err(ExcelError::DuplicateHeader(header)) if header == "ID"
     ));
 }
+
+#[test]
+fn malformed_workbook_returns_parse_error() {
+    let error = from_xlsx::<Person>(b"not an xlsx file").expect_err("malformed workbook");
+
+    assert!(matches!(error, ExcelError::Parse(_)));
+}
+
+#[test]
+fn empty_workbook_bytes_return_parse_error() {
+    let error = from_xlsx::<Person>(&[]).expect_err("empty workbook bytes");
+
+    assert!(matches!(error, ExcelError::Parse(_)));
+}
