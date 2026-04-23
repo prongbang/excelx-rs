@@ -1,12 +1,11 @@
 # excelx-rs
 
-`excelx` is a small Rust crate for converting struct collections to a single
-XLSX worksheet and parsing them back with explicit header and column-order
-metadata.
+`excelx` is a small Rust crate for converting struct collections to XLSX
+worksheets and parsing them back with explicit header and column-order metadata.
 
 The crate supports manual `ExcelRow` implementations, default values during
-parse, homogeneous multi-sheet workbook generation, and a derive macro in the
-separate `excelx-derive` crate.
+parse, selected-sheet reads, homogeneous multi-sheet read/write, and a derive
+macro in the separate `excelx-derive` crate.
 
 ## MSRV
 
@@ -84,6 +83,22 @@ let workbook = to_xlsx_multi(&[
 # Ok::<(), ExcelError>(())
 ```
 
+## Multi-sheet Read
+
+`from_xlsx()` reads the first worksheet. Use `SheetRef` or `ReadOptions` to
+read a specific worksheet, or `from_xlsx_multi()` when every worksheet has the
+same row schema.
+
+```rust
+use excelx::{SheetRef, from_xlsx_multi, from_xlsx_sheet};
+
+let archive = from_xlsx_sheet::<Person>(&bytes, SheetRef::Name("Archive"))?;
+let second_sheet = from_xlsx_sheet::<Person>(&bytes, SheetRef::Index(1))?;
+let all_sheets = from_xlsx_multi::<Person>(&bytes)?;
+# let _ = (archive, second_sheet, all_sheets);
+# Ok::<(), ExcelError>(())
+```
+
 ## Derive Macro
 
 Add `excelx-derive` next to `excelx`, then derive the trait with field
@@ -111,8 +126,10 @@ scalar fields.
 
 `excelx` is intentionally small. Current limitations:
 
-* Reading uses the first worksheet only.
-* Multi-sheet support is write-only and homogeneous via `SheetData<T>`.
+* `from_xlsx()` reads the first worksheet by default. Use `SheetRef` or
+  `ReadOptions` to select a worksheet explicitly.
+* Multi-sheet read/write is homogeneous. Every parsed or written sheet must use
+  the same row type.
 * Integer writes go through XLSX numeric cells, which are stored as floating
   point values by Excel. Very large integers can lose precision.
 * Defaults apply during parse when a required header exists and the cell is

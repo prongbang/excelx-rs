@@ -1,7 +1,8 @@
-//! Ergonomic single-sheet XLSX conversion for manually implemented row types.
+//! Ergonomic XLSX conversion for manually implemented row types.
 //!
-//! Phase 1 intentionally keeps the public API small. Implement [`ExcelRow`] for
-//! your struct, then use [`to_xlsx`] and [`from_xlsx`] to round-trip values.
+//! Implement [`ExcelRow`] for your struct, then use [`to_xlsx`] and
+//! [`from_xlsx`] to round-trip a first worksheet, or the sheet-selection and
+//! multi-sheet APIs for workbooks with multiple homogeneous worksheets.
 
 mod column;
 mod error;
@@ -13,7 +14,10 @@ mod write;
 
 pub use column::{ColumnDef, validate_columns};
 pub use error::ExcelError;
-pub use read::{from_reader, from_xlsx};
+pub use read::{
+    ParsedSheet, ReadOptions, SheetRef, from_reader, from_reader_multi, from_reader_with_options,
+    from_xlsx, from_xlsx_multi, from_xlsx_sheet, from_xlsx_with_options,
+};
 pub use row::{ExcelRow, RowView};
 pub use sheet::{SheetData, SheetOptions};
 pub use types::CellValue;

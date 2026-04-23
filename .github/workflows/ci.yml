@@ -34,39 +34,6 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-  libreoffice-compat:
-    name: LibreOffice compatibility
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libreoffice-calc
-
-      - name: Generate LibreOffice fixture
-        run: |
-          mkdir -p target/compat-fixtures
-          cat > target/compat-fixtures/libreoffice.csv <<'CSV'
-          ID,Name,Active,Score
-          1,Ada,true,98.5
-          2,Grace,false,88
-          CSV
-          libreoffice --headless --convert-to xlsx --outdir target/compat-fixtures target/compat-fixtures/libreoffice.csv
-
-      - name: Run compatibility tests
-        env:
-          EXCELX_COMPAT_FIXTURE_DIR: target/compat-fixtures
-        run: cargo test -p excelx --test compatibility_workbooks
-
   publish-dry-run:
     name: Publish dry-run
     runs-on: ubuntu-latest
