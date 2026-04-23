@@ -4,9 +4,9 @@
 XLSX worksheet and parsing them back with explicit header and column-order
 metadata.
 
-Phase 2 supports manual `ExcelRow` implementations, default values during
-parse, and homogeneous multi-sheet workbook generation. Derive macros are
-planned for Phase 3.
+The crate supports manual `ExcelRow` implementations, default values during
+parse, homogeneous multi-sheet workbook generation, and a derive macro in the
+separate `excelx-derive` crate.
 
 ## Example
 
@@ -79,3 +79,26 @@ let workbook = to_xlsx_multi(&[
 ])?;
 # Ok::<(), ExcelError>(())
 ```
+
+## Derive Macro
+
+Add `excelx-derive` next to `excelx`, then derive the trait with field
+metadata:
+
+```rust
+#[derive(excelx_derive::ExcelRow)]
+struct Person {
+    #[excel(header = "ID", order = 1)]
+    id: i64,
+    #[excel(header = "Name", order = 2)]
+    name: String,
+    #[excel(header = "Active", order = 3, default = "true")]
+    active: bool,
+    #[excel(header = "Nickname", order = 4, default = "N/A")]
+    nickname: Option<String>,
+}
+```
+
+The initial macro release supports named structs with `String`,
+`Option<String>`, supported integer types, `f32`/`f64`, `bool`, and optional
+scalar fields.
