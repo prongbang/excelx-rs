@@ -96,7 +96,6 @@ name = "excelx"
 version = "0.3.0"
 dependencies = [
  "calamine",
- "excelx-derive",
  "rust_xlsxwriter",
  "thiserror",
 ]
@@ -105,11 +104,26 @@ dependencies = [
 name = "excelx-derive"
 version = "0.3.0"
 dependencies = [
- "excelx",
  "proc-macro2",
  "quote",
  "syn",
  "trybuild",
+]
+
+[[package]]
+name = "excelx-examples"
+version = "0.3.0"
+dependencies = [
+ "excelx",
+ "excelx-derive",
+]
+
+[[package]]
+name = "excelx-integration-tests"
+version = "0.3.0"
+dependencies = [
+ "excelx",
+ "excelx-derive",
 ]
 
 [[package]]

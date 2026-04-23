@@ -1,0 +1,10 @@
+[package]
+name = "excelx-examples"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+excelx = { path = "../crates/excelx" }
+excelx-derive = { path = "../crates/excelx-derive" }

@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn example_path(file_name: &str) -> Result<PathBuf, std::io::Error> {
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("../../target/examples");
+    path.push("../target/examples");
     fs::create_dir_all(&path)?;
     path.push(file_name);
     Ok(path)

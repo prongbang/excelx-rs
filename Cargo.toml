@@ -2,6 +2,8 @@
 members = [
     "crates/excelx",
     "crates/excelx-derive",
+    "crates/excelx-integration-tests",
+    "examples",
 ]
 resolver = "3"
 
