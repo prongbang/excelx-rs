@@ -1,0 +1,6 @@
+error: missing #[excel(order = ...)]
+ --> tests/ui/missing_order.rs:5:5
+  |
+5 | /     #[excel(header = "ID")]
+6 | |     id: i64,
+  | |___________^

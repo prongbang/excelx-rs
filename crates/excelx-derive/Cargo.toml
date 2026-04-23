@@ -3,7 +3,8 @@ name = "excelx-derive"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-repository.workspace = true
+description = "Derive macro for the excelx ExcelRow trait."
+documentation = "https://docs.rs/excelx-derive"
 
 [lib]
 proc-macro = true
@@ -14,4 +15,5 @@ quote = "1"
 syn = { version = "2", features = ["full"] }
 
 [dev-dependencies]
-excelx = { path = "../excelx" }
+excelx = { path = "../excelx", version = "0.3" }
+trybuild = "1"
