@@ -96,6 +96,7 @@ name = "excelx"
 version = "0.3.0"
 dependencies = [
  "calamine",
+ "excelx-derive",
  "rust_xlsxwriter",
  "thiserror",
 ]
