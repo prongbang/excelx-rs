@@ -22,7 +22,13 @@ pub struct RowView {
     row_number: usize,
     values_by_field: HashMap<&'static str, CellValue>,
     headers_by_field: HashMap<&'static str, &'static str>,
+    defaults_by_field: HashMap<&'static str, &'static str>,
     values_by_header: HashMap<&'static str, CellValue>,
+}
+
+enum FieldValue<'a> {
+    Cell(&'a CellValue),
+    Default(&'static str),
 }
 
 impl RowView {
@@ -33,11 +39,15 @@ impl RowView {
     ) -> Self {
         let mut values_by_field = HashMap::with_capacity(columns.len());
         let mut headers_by_field = HashMap::with_capacity(columns.len());
+        let mut defaults_by_field = HashMap::with_capacity(columns.len());
         let mut values_by_header = HashMap::with_capacity(columns.len());
 
         for (column, value) in columns.iter().zip(values_by_schema_index.into_iter()) {
             values_by_field.insert(column.field, value.clone());
             headers_by_field.insert(column.field, column.header);
+            if let Some(default) = column.default {
+                defaults_by_field.insert(column.field, default);
+            }
             values_by_header.insert(column.header, value);
         }
 
@@ -45,6 +55,7 @@ impl RowView {
             row_number,
             values_by_field,
             headers_by_field,
+            defaults_by_field,
             values_by_header,
         }
     }
@@ -62,61 +73,91 @@ impl RowView {
     }
 
     pub fn required_string(&self, field: &str) -> Result<String, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::String(value) => Ok(value.clone()),
-            value => Err(self.invalid_type(field, "string", value)),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => Ok(value.to_owned()),
+            FieldValue::Cell(CellValue::String(value)) => Ok(value.clone()),
+            FieldValue::Cell(value) => Err(self.invalid_type(field, "string", value)),
         }
     }
 
     pub fn optional_string(&self, field: &str) -> Result<Option<String>, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::String(value) => Ok(Some(value.clone())),
-            CellValue::Empty => Ok(None),
-            value => Err(self.invalid_type(field, "string or empty", value)),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => Ok(Some(value.to_owned())),
+            FieldValue::Cell(CellValue::String(value)) => Ok(Some(value.clone())),
+            FieldValue::Cell(CellValue::Empty) => Ok(None),
+            FieldValue::Cell(value) => Err(self.invalid_type(field, "string or empty", value)),
         }
     }
 
     pub fn required_i64(&self, field: &str) -> Result<i64, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Int(value) => Ok(*value),
-            CellValue::Float(value) if value.fract() == 0.0 => Ok(*value as i64),
-            value => Err(self.invalid_type(field, "integer", value)),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_i64(field, value),
+            FieldValue::Cell(CellValue::Int(value)) => Ok(*value),
+            FieldValue::Cell(CellValue::Float(value)) if value.fract() == 0.0 => Ok(*value as i64),
+            FieldValue::Cell(CellValue::String(value)) => value.trim().parse().map_err(|_| {
+                self.invalid_type(field, "integer", &CellValue::String(value.clone()))
+            }),
+            FieldValue::Cell(value) => Err(self.invalid_type(field, "integer", value)),
         }
     }
 
     pub fn optional_i64(&self, field: &str) -> Result<Option<i64>, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Empty => Ok(None),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_i64(field, value).map(Some),
+            FieldValue::Cell(CellValue::Empty) => Ok(None),
             _ => self.required_i64(field).map(Some),
         }
     }
 
     pub fn required_f64(&self, field: &str) -> Result<f64, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Int(value) => Ok(*value as f64),
-            CellValue::Float(value) => Ok(*value),
-            value => Err(self.invalid_type(field, "number", value)),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_f64(field, value),
+            FieldValue::Cell(CellValue::Int(value)) => Ok(*value as f64),
+            FieldValue::Cell(CellValue::Float(value)) => Ok(*value),
+            FieldValue::Cell(CellValue::String(value)) => value
+                .trim()
+                .parse()
+                .map_err(|_| self.invalid_type(field, "number", &CellValue::String(value.clone()))),
+            FieldValue::Cell(value) => Err(self.invalid_type(field, "number", value)),
         }
     }
 
     pub fn optional_f64(&self, field: &str) -> Result<Option<f64>, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Empty => Ok(None),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_f64(field, value).map(Some),
+            FieldValue::Cell(CellValue::Empty) => Ok(None),
             _ => self.required_f64(field).map(Some),
         }
     }
 
     pub fn required_bool(&self, field: &str) -> Result<bool, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Bool(value) => Ok(*value),
-            value => Err(self.invalid_type(field, "boolean", value)),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_bool(field, value),
+            FieldValue::Cell(CellValue::Bool(value)) => Ok(*value),
+            FieldValue::Cell(CellValue::String(value)) => parse_bool(value).ok_or_else(|| {
+                self.invalid_type(field, "boolean", &CellValue::String(value.clone()))
+            }),
+            FieldValue::Cell(value) => Err(self.invalid_type(field, "boolean", value)),
         }
     }
 
     pub fn optional_bool(&self, field: &str) -> Result<Option<bool>, ExcelError> {
-        match self.required_value(field)? {
-            CellValue::Empty => Ok(None),
+        match self.value_or_default(field)? {
+            FieldValue::Default(value) => self.parse_default_bool(field, value).map(Some),
+            FieldValue::Cell(CellValue::Empty) => Ok(None),
             _ => self.required_bool(field).map(Some),
+        }
+    }
+
+    fn value_or_default(&self, field: &str) -> Result<FieldValue<'_>, ExcelError> {
+        match self.required_value(field)? {
+            CellValue::Empty => Ok(self
+                .defaults_by_field
+                .get(field)
+                .copied()
+                .map(FieldValue::Default)
+                .unwrap_or(FieldValue::Cell(&CellValue::Empty))),
+            value => Ok(FieldValue::Cell(value)),
         }
     }
 
@@ -126,17 +167,55 @@ impl RowView {
             .ok_or_else(|| ExcelError::Schema(format!("unknown field `{field}` in RowView")))
     }
 
+    fn parse_default_i64(&self, field: &str, value: &str) -> Result<i64, ExcelError> {
+        value
+            .trim()
+            .parse()
+            .map_err(|_| self.invalid_default(field, "integer", value))
+    }
+
+    fn parse_default_f64(&self, field: &str, value: &str) -> Result<f64, ExcelError> {
+        value
+            .trim()
+            .parse()
+            .map_err(|_| self.invalid_default(field, "number", value))
+    }
+
+    fn parse_default_bool(&self, field: &str, value: &str) -> Result<bool, ExcelError> {
+        parse_bool(value).ok_or_else(|| self.invalid_default(field, "boolean", value))
+    }
+
     fn invalid_type(&self, field: &str, expected: &str, found: &CellValue) -> ExcelError {
         ExcelError::InvalidCellType {
             row: self.row_number,
-            column: self
-                .headers_by_field
-                .get(field)
-                .copied()
-                .unwrap_or(field)
-                .to_owned(),
+            column: self.header_for_field(field),
             expected: expected.to_owned(),
             found: found.type_name().to_owned(),
         }
+    }
+
+    fn invalid_default(&self, field: &str, expected: &str, value: &str) -> ExcelError {
+        ExcelError::InvalidDefault {
+            field: field.to_owned(),
+            header: self.header_for_field(field),
+            expected: expected.to_owned(),
+            value: value.to_owned(),
+        }
+    }
+
+    fn header_for_field(&self, field: &str) -> String {
+        self.headers_by_field
+            .get(field)
+            .copied()
+            .unwrap_or(field)
+            .to_owned()
+    }
+}
+
+fn parse_bool(value: &str) -> Option<bool> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None,
     }
 }

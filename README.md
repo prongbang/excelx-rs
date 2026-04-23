@@ -4,8 +4,9 @@
 XLSX worksheet and parsing them back with explicit header and column-order
 metadata.
 
-Phase 1 supports manual `ExcelRow` implementations only. Derive macros,
-defaults, and multi-sheet workbooks are planned for later phases.
+Phase 2 supports manual `ExcelRow` implementations, default values during
+parse, and homogeneous multi-sheet workbook generation. Derive macros are
+planned for Phase 3.
 
 ## Example
 
@@ -54,5 +55,27 @@ let people = vec![Person {
 let bytes = to_xlsx(&people)?;
 let parsed = from_xlsx::<Person>(&bytes)?;
 assert_eq!(parsed, people);
+# Ok::<(), ExcelError>(())
+```
+
+## Defaults
+
+Defaults are applied during parse when the header exists but the cell is empty.
+Typed `RowView` accessors parse defaults for `String`, integer, float, and
+boolean fields.
+
+```rust
+ColumnDef::with_default("status", "Status", 3, "new")
+```
+
+## Multi-sheet Write
+
+```rust
+use excelx::{SheetData, to_xlsx_multi};
+
+let workbook = to_xlsx_multi(&[
+    SheetData::new("Active", active_people),
+    SheetData::new("Archive", archived_people),
+])?;
 # Ok::<(), ExcelError>(())
 ```

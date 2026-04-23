@@ -1,14 +1,43 @@
-use rust_xlsxwriter::Workbook;
+use std::collections::HashSet;
 
-use crate::{CellValue, ExcelError, ExcelRow, validate_columns};
+use rust_xlsxwriter::{Workbook, Worksheet};
+
+use crate::{CellValue, ExcelError, ExcelRow, SheetData, validate_columns};
 
 /// Convert a slice of row values into a single-sheet XLSX workbook.
 pub fn to_xlsx<T: ExcelRow>(data: &[T]) -> Result<Vec<u8>, ExcelError> {
-    let columns = T::columns();
-    let sorted_columns = validate_columns(&columns)?;
-
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
+    write_rows_to_worksheet(worksheet, data)?;
+
+    workbook.save_to_buffer().map_err(ExcelError::from)
+}
+
+/// Convert multiple homogeneous sheets into one XLSX workbook.
+pub fn to_xlsx_multi<T: ExcelRow>(sheets: &[SheetData<T>]) -> Result<Vec<u8>, ExcelError> {
+    if sheets.is_empty() {
+        return Err(ExcelError::Schema(
+            "multi-sheet workbook requires at least one sheet".to_owned(),
+        ));
+    }
+
+    validate_sheet_names(sheets)?;
+
+    let mut workbook = Workbook::new();
+    for sheet in sheets {
+        let worksheet = workbook.add_worksheet().set_name(&sheet.name)?;
+        write_rows_to_worksheet(worksheet, &sheet.rows)?;
+    }
+
+    workbook.save_to_buffer().map_err(ExcelError::from)
+}
+
+fn write_rows_to_worksheet<T: ExcelRow>(
+    worksheet: &mut Worksheet,
+    data: &[T],
+) -> Result<(), ExcelError> {
+    let columns = T::columns();
+    let sorted_columns = validate_columns(&columns)?;
 
     for (write_col, column) in sorted_columns.iter().enumerate() {
         worksheet.write_string(0, as_col(write_col)?, column.header)?;
@@ -41,11 +70,27 @@ pub fn to_xlsx<T: ExcelRow>(data: &[T]) -> Result<Vec<u8>, ExcelError> {
         }
     }
 
-    workbook.save_to_buffer().map_err(ExcelError::from)
+    Ok(())
+}
+
+fn validate_sheet_names<T>(sheets: &[SheetData<T>]) -> Result<(), ExcelError> {
+    let mut names = HashSet::with_capacity(sheets.len());
+
+    for sheet in sheets {
+        let normalized = sheet.name.to_lowercase();
+        if !names.insert(normalized) {
+            return Err(ExcelError::Schema(format!(
+                "duplicate sheet name: {}",
+                sheet.name
+            )));
+        }
+    }
+
+    Ok(())
 }
 
 fn write_cell(
-    worksheet: &mut rust_xlsxwriter::Worksheet,
+    worksheet: &mut Worksheet,
     row: u32,
     col: u16,
     value: &CellValue,

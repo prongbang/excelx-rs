@@ -15,6 +15,6 @@ pub use column::{ColumnDef, validate_columns};
 pub use error::ExcelError;
 pub use read::{from_reader, from_xlsx};
 pub use row::{ExcelRow, RowView};
-pub use sheet::SheetOptions;
+pub use sheet::{SheetData, SheetOptions};
 pub use types::CellValue;
-pub use write::to_xlsx;
+pub use write::{to_xlsx, to_xlsx_multi};

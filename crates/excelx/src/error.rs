@@ -23,6 +23,14 @@ pub enum ExcelError {
         found: String,
     },
 
+    #[error("invalid default for field {field} ({header}): expected {expected}, value {value:?}")]
+    InvalidDefault {
+        field: String,
+        header: String,
+        expected: String,
+        value: String,
+    },
+
     #[error("parse error: {0}")]
     Parse(String),
 
